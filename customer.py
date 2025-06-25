@@ -1,4 +1,4 @@
-from flask import Flask, render_template, request, redirect, send_file
+from flask import Flask, render_template, request, redirect
 import pandas as pd
 from sklearn.preprocessing import StandardScaler
 from sklearn.cluster import KMeans
@@ -29,6 +29,7 @@ def cluster():
 
     df = pd.read_csv(filepath)
 
+    # Preprocessing
     if 'CustomerID' in df.columns:
         df.drop('CustomerID', axis=1, inplace=True)
     if 'Gender' in df.columns:
@@ -37,7 +38,7 @@ def cluster():
     scaler = StandardScaler()
     scaled_data = scaler.fit_transform(df)
 
-    # Elbow method
+    # Elbow method plot
     wcss = []
     for i in range(1, 11):
         kmeans = KMeans(n_clusters=i, random_state=42)
@@ -56,7 +57,7 @@ def cluster():
     kmeans = KMeans(n_clusters=5, random_state=42)
     df['Cluster'] = kmeans.fit_predict(scaled_data)
 
-    # 2D Plot using Annual Income and Spending Score (if exists)
+    # 2D Plot if columns exist
     if 'Annual Income (k$)' in df.columns and 'Spending Score (1-100)' in df.columns:
         plt.figure()
         plt.scatter(df['Annual Income (k$)'], df['Spending Score (1-100)'], c=df['Cluster'], cmap='tab10')
@@ -74,4 +75,3 @@ def cluster():
 
 if __name__ == '__main__':
     app.run(debug=True)
-
