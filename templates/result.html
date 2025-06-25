@@ -4,22 +4,26 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Result</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
 </head>
 <body>
     <div class="container">
         <h1>📊 Clustering Results</h1>
-        
+
         <h2>Elbow Method</h2>
         <img src="{{ elbow }}" alt="Elbow Method Plot" width="500">
-        
+
         <h2>Customer Segmentation</h2>
         <img src="{{ cluster }}" alt="Cluster Plot" width="500">
-        
+
         <h2>Cluster Preview (Top 5 Rows)</h2>
         <div class="table-container">
             {{ table | safe }}
         </div>
-        
+
+        <h2>Clustered CSV</h2>
+        <a href="{{ url_for('download_file', filename=download_file) }}" class="download-btn">⬇️ Download Clustered Data</a>
+        <br><br>
         <a href="/">⬅️ Upload another file</a>
     </div>
 </body>
