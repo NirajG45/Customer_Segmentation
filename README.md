@@ -1,23 +1,41 @@
 # 🧠 Customer Segmentation using K-Means Clustering
 
-This project groups customers into clusters based on their demographics and purchase behavior using the K-Means algorithm.
+> **"Group your customers, grow your business!"**
 
-## 📊 Dataset
-- [Kaggle - Customer Segmentation](https://www.kaggle.com/datasets/vjchoudhary7/customer-segmentation-tutorial-in-python)
-- Columns: Gender, Age, Annual Income (k$), Spending Score (1-100)
+This project applies **K-Means Clustering** to segment customers of a retail store based on their age, income, and spending habits. It helps identify different types of customers to target marketing strategies effectively.
 
-## 🛠️ Technologies
-- Python
-- Pandas
-- Matplotlib
-- Seaborn
-- Scikit-learn
+---
 
-## 🚀 How to Run
+## 📌 Project Overview
+
+This machine learning project aims to:
+- Group customers into different segments
+- Visualize customer distribution based on income and spending
+- Discover patterns in customer behavior
+
+Using the **Mall Customer Segmentation Dataset**, we identify clusters such as:
+- High Income – High Spending
+- Low Income – Low Spending
+- Young Low-Income High Spenders, etc.
+
+---
+
+## 📊 Dataset Details
+
+- 📁 **File**: `Mall_Customers.csv`
+- 📌 **Source**: [Kaggle Dataset](https://www.kaggle.com/datasets/vjchoudhary7/customer-segmentation-tutorial-in-python)
+- 📈 **Features**:
+  - `CustomerID`
+  - `Gender`
+  - `Age`
+  - `Annual Income (k$)`
+  - `Spending Score (1-100)`
+
+---
+
+## 🚀 How to Run the Project
+
+### 1️⃣ Clone the Repo or Download Files
 ```bash
-python customer_segmentation.py
-```
-
-## 📁 Output
-- Clustered customers saved to `Clustered_Customers.csv`
-- Visualizations saved to `plots/`
+git clone https://github.com/your-username/customer-segmentation-kmeans.git
+cd customer-segmentation-kmeans
