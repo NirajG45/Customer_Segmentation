@@ -1,4 +1,4 @@
-from flask import Flask, render_template, request, redirect
+from flask import Flask, render_template, request, redirect, send_file
 import pandas as pd
 from sklearn.preprocessing import StandardScaler
 from sklearn.cluster import KMeans
@@ -29,7 +29,6 @@ def cluster():
 
     df = pd.read_csv(filepath)
 
-    # Preprocessing
     if 'CustomerID' in df.columns:
         df.drop('CustomerID', axis=1, inplace=True)
     if 'Gender' in df.columns:
@@ -38,7 +37,6 @@ def cluster():
     scaler = StandardScaler()
     scaled_data = scaler.fit_transform(df)
 
-    # Elbow method plot
     wcss = []
     for i in range(1, 11):
         kmeans = KMeans(n_clusters=i, random_state=42)
@@ -53,11 +51,9 @@ def cluster():
     elbow_path = os.path.join(PLOT_FOLDER, 'elbow.png')
     plt.savefig(elbow_path)
 
-    # Final Clustering (k=5)
     kmeans = KMeans(n_clusters=5, random_state=42)
     df['Cluster'] = kmeans.fit_predict(scaled_data)
 
-    # 2D Plot if columns exist
     if 'Annual Income (k$)' in df.columns and 'Spending Score (1-100)' in df.columns:
         plt.figure()
         plt.scatter(df['Annual Income (k$)'], df['Spending Score (1-100)'], c=df['Cluster'], cmap='tab10')
@@ -69,9 +65,22 @@ def cluster():
     else:
         cluster_path = None
 
+    clustered_filename = "clustered_" + file.filename
+    output_csv = os.path.join(UPLOAD_FOLDER, clustered_filename)
+    df.to_csv(output_csv, index=False)
+
     preview_table = df.head().to_html(classes='table table-striped', index=False)
 
-    return render_template("result.html", elbow='static/elbow.png', cluster='static/clusters.png', table=preview_table)
+    return render_template("result.html",
+                           elbow='static/elbow.png',
+                           cluster='static/clusters.png',
+                           table=preview_table,
+                           download_file=clustered_filename)
+
+@app.route('/download/<filename>')
+def download_file(filename):
+    filepath = os.path.join(UPLOAD_FOLDER, filename)
+    return send_file(filepath, as_attachment=True)
 
 if __name__ == '__main__':
     app.run(debug=True)
