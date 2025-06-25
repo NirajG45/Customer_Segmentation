@@ -5,14 +5,115 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Customer Segmentation</title>
     <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 </head>
 <body>
     <div class="container">
-        <h1>🛍️ Customer Segmentation</h1>
-        <form action="/cluster" method="post" enctype="multipart/form-data">
-            <input type="file" name="file" required>
-            <button type="submit">Cluster Now</button>
-        </form>
+        <h1>Customer Segmentation Result</h1>
+
+        <img src="{{ url_for('static', filename='cluster_plot.png') }}" alt="Cluster Plot">
+
+        <h2>Segmented Data</h2>
+        <div class="table-container">
+            {{ tables|safe }}
+        </div>
+
+        <a href="/download" class="download-btn">Download Segmented Data CSV</a>
+
+        <h2>📊 Cluster Distribution</h2>
+        <canvas id="clusterChart" height="100"></canvas>
+
+        <h2>📈 Age vs Spending Score</h2>
+        <canvas id="scatterChart" height="100"></canvas>
+
+        <h2>💰 Average Income per Cluster</h2>
+        <canvas id="barChart" height="100"></canvas>
     </div>
+
+    <script>
+        const clusterCounts = {{ cluster_counts | tojson }};
+        const incomeData = {{ income_by_cluster | tojson }};
+        const scatterPoints = {{ scatter_data | tojson }};
+
+        new Chart(document.getElementById('clusterChart'), {
+            type: 'doughnut',
+            data: {
+                labels: Object.keys(clusterCounts),
+                datasets: [{
+                    label: 'Customers in Cluster',
+                    data: Object.values(clusterCounts),
+                    backgroundColor: ['#00ffd5', '#ffdd57', '#ff6f91', '#6a82fb'],
+                    borderWidth: 1
+                }]
+            },
+            options: {
+                animation: {
+                    animateScale: true
+                },
+                plugins: {
+                    legend: {
+                        labels: {
+                            color: '#fff'
+                        }
+                    }
+                }
+            }
+        });
+
+        new Chart(document.getElementById('scatterChart'), {
+            type: 'scatter',
+            data: {
+                datasets: [{
+                    label: 'Customer',
+                    data: scatterPoints.map(p => ({x: p[0], y: p[1]})),
+                    backgroundColor: '#00ffd5'
+                }]
+            },
+            options: {
+                scales: {
+                    x: {
+                        title: {display: true, text: 'Age', color: '#fff'},
+                        ticks: {color: '#fff'}
+                    },
+                    y: {
+                        title: {display: true, text: 'Spending Score', color: '#fff'},
+                        ticks: {color: '#fff'}
+                    }
+                },
+                plugins: {
+                    legend: {display: false}
+                }
+            }
+        });
+
+        new Chart(document.getElementById('barChart'), {
+            type: 'bar',
+            data: {
+                labels: Object.keys(incomeData),
+                datasets: [{
+                    label: 'Avg Annual Income (k$)',
+                    data: Object.values(incomeData),
+                    backgroundColor: '#ffdd57'
+                }]
+            },
+            options: {
+                scales: {
+                    x: {
+                        ticks: {color: '#fff'}
+                    },
+                    y: {
+                        ticks: {color: '#fff'}
+                    }
+                },
+                plugins: {
+                    legend: {
+                        labels: {
+                            color: '#fff'
+                        }
+                    }
+                }
+            }
+        });
+    </script>
 </body>
 </html>
