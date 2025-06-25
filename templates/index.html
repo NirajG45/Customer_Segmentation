@@ -2,115 +2,101 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Customer Segmentation</title>
-    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+    <link rel="stylesheet" href="/static/style.css">
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 </head>
 <body>
     <div class="container">
-        <h1>Customer Segmentation Result</h1>
+        <h1>Customer Segmentation Results</h1>
+        <img src="/{{ image }}" alt="Cluster Plot">
 
-        <img src="{{ url_for('static', filename='cluster_plot.png') }}" alt="Cluster Plot">
-
-        <h2>Segmented Data</h2>
+        <h2>Cluster Table</h2>
         <div class="table-container">
             {{ tables|safe }}
         </div>
 
-        <a href="/download" class="download-btn">Download Segmented Data CSV</a>
+        <a class="download-btn" href="/download">Download CSV</a>
 
-        <h2>📊 Cluster Distribution</h2>
-        <canvas id="clusterChart" height="100"></canvas>
+        <h2>Cluster Distribution</h2>
+        <canvas id="clusterChart" width="400" height="200"></canvas>
 
-        <h2>📈 Age vs Spending Score</h2>
-        <canvas id="scatterChart" height="100"></canvas>
+        <h2>Average Income by Cluster</h2>
+        <canvas id="incomeChart" width="400" height="200"></canvas>
 
-        <h2>💰 Average Income per Cluster</h2>
-        <canvas id="barChart" height="100"></canvas>
+        <h2>Spending vs Age Scatter by Cluster</h2>
+        <canvas id="scatterChart" width="400" height="200"></canvas>
     </div>
 
     <script>
-        const clusterCounts = {{ cluster_counts | tojson }};
-        const incomeData = {{ income_by_cluster | tojson }};
-        const scatterPoints = {{ scatter_data | tojson }};
+        const clusterCounts = JSON.parse('{{ cluster_counts | tojson | safe }}');
+        const incomeData = JSON.parse('{{ income_by_cluster | tojson | safe }}');
+        const scatterPoints = JSON.parse('{{ scatter_data | tojson | safe }}');
 
-        new Chart(document.getElementById('clusterChart'), {
-            type: 'doughnut',
+        const clusterChart = new Chart(document.getElementById('clusterChart'), {
+            type: 'bar',
             data: {
                 labels: Object.keys(clusterCounts),
                 datasets: [{
-                    label: 'Customers in Cluster',
+                    label: 'Number of Customers',
                     data: Object.values(clusterCounts),
-                    backgroundColor: ['#00ffd5', '#ffdd57', '#ff6f91', '#6a82fb'],
-                    borderWidth: 1
+                    backgroundColor: 'rgba(0, 255, 213, 0.5)',
+                    borderColor: 'rgba(0, 255, 213, 1)',
+                    borderWidth: 2
                 }]
             },
             options: {
-                animation: {
-                    animateScale: true
-                },
-                plugins: {
-                    legend: {
-                        labels: {
-                            color: '#fff'
-                        }
-                    }
-                }
-            }
-        });
-
-        new Chart(document.getElementById('scatterChart'), {
-            type: 'scatter',
-            data: {
-                datasets: [{
-                    label: 'Customer',
-                    data: scatterPoints.map(p => ({x: p[0], y: p[1]})),
-                    backgroundColor: '#00ffd5'
-                }]
-            },
-            options: {
+                responsive: true,
                 scales: {
-                    x: {
-                        title: {display: true, text: 'Age', color: '#fff'},
-                        ticks: {color: '#fff'}
-                    },
-                    y: {
-                        title: {display: true, text: 'Spending Score', color: '#fff'},
-                        ticks: {color: '#fff'}
-                    }
-                },
-                plugins: {
-                    legend: {display: false}
+                    y: { beginAtZero: true }
                 }
             }
         });
 
-        new Chart(document.getElementById('barChart'), {
-            type: 'bar',
+        const incomeChart = new Chart(document.getElementById('incomeChart'), {
+            type: 'line',
             data: {
                 labels: Object.keys(incomeData),
                 datasets: [{
                     label: 'Avg Annual Income (k$)',
                     data: Object.values(incomeData),
-                    backgroundColor: '#ffdd57'
+                    fill: false,
+                    borderColor: 'rgba(255, 221, 87, 1)',
+                    backgroundColor: 'rgba(255, 221, 87, 0.5)',
+                    tension: 0.4
                 }]
             },
             options: {
+                responsive: true,
                 scales: {
-                    x: {
-                        ticks: {color: '#fff'}
-                    },
-                    y: {
-                        ticks: {color: '#fff'}
+                    y: { beginAtZero: true }
+                }
+            }
+        });
+
+        const scatterChart = new Chart(document.getElementById('scatterChart'), {
+            type: 'scatter',
+            data: {
+                datasets: [...new Set(scatterPoints.map(p => p[2]))].map(clusterId => {
+                    return {
+                        label: `Cluster ${clusterId}`,
+                        data: scatterPoints.filter(p => p[2] === clusterId).map(p => ({ x: p[0], y: p[1] })),
+                        backgroundColor: `hsl(${clusterId * 90}, 70%, 60%)`
+                    };
+                })
+            },
+            options: {
+                responsive: true,
+                plugins: {
+                    legend: { position: 'top' },
+                    title: {
+                        display: true,
+                        text: 'Spending Score vs Age by Cluster'
                     }
                 },
-                plugins: {
-                    legend: {
-                        labels: {
-                            color: '#fff'
-                        }
-                    }
+                scales: {
+                    x: { title: { display: true, text: 'Age' } },
+                    y: { title: { display: true, text: 'Spending Score (1-100)' } }
                 }
             }
         });
