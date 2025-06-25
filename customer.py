@@ -1,55 +1,86 @@
 from flask import Flask, render_template, request, redirect, send_file
 import pandas as pd
+from sklearn.preprocessing import StandardScaler
 from sklearn.cluster import KMeans
 import matplotlib.pyplot as plt
-import seaborn as sns
 import os
 
 app = Flask(__name__)
+UPLOAD_FOLDER = 'uploads'
+PLOT_FOLDER = 'static'
+
+if not os.path.exists(UPLOAD_FOLDER):
+    os.makedirs(UPLOAD_FOLDER)
+if not os.path.exists(PLOT_FOLDER):
+    os.makedirs(PLOT_FOLDER)
 
 @app.route('/')
-def index():
-    # Load and preprocess the data
-    df = pd.read_csv('Mall_Customers.csv')
-    data = df[['Age', 'Annual Income (k$)', 'Spending Score (1-100)']]
+def home():
+    return render_template("index.html")
 
-    # KMeans clustering
-    kmeans = KMeans(n_clusters=4, random_state=42)
-    df['Cluster'] = kmeans.fit_predict(data)
+@app.route('/cluster', methods=['POST'])
+def cluster():
+    file = request.files['file']
+    if not file:
+        return "No file uploaded."
 
-    # Save cluster plot
-    plt.figure(figsize=(8,6))
-    sns.scatterplot(data=df, x='Annual Income (k$)', y='Spending Score (1-100)', hue='Cluster', palette='viridis')
-    plt.title('Customer Segments')
-    plt.savefig('static/cluster_plot.png')
-    plt.close()
+    filepath = os.path.join(UPLOAD_FOLDER, file.filename)
+    file.save(filepath)
 
-    # Save CSV output
-    segmented_data = df.copy()
-    segmented_data.to_csv('static/segmented_customers.csv', index=False)
+    df = pd.read_csv(filepath)
 
-    # 🧼 Clean data for HTML table rendering
-    segmented_data = segmented_data.applymap(
-        lambda x: str(x).replace('\n', ' ').strip() if isinstance(x, str) else x
-    )
+    if 'CustomerID' in df.columns:
+        df.drop('CustomerID', axis=1, inplace=True)
+    if 'Gender' in df.columns:
+        df['Gender'] = df['Gender'].map({'Male': 0, 'Female': 1})
 
-    # Data for Chart.js
-    cluster_counts = segmented_data['Cluster'].value_counts().to_dict()
-    income_by_cluster = segmented_data.groupby('Cluster')['Annual Income (k$)'].mean().round(2).to_dict()
-    scatter_data = segmented_data[['Age', 'Spending Score (1-100)', 'Cluster']].values.tolist()
+    scaler = StandardScaler()
+    scaled_data = scaler.fit_transform(df)
 
-    return render_template('index.html',
-        tables=[segmented_data.to_html(classes='data', escape=False)],
-        title='Customer Segmentation',
-        image='static/cluster_plot.png',
-        cluster_counts=cluster_counts,
-        income_by_cluster=income_by_cluster,
-        scatter_data=scatter_data
-    )
+    wcss = []
+    for i in range(1, 11):
+        kmeans = KMeans(n_clusters=i, random_state=42)
+        kmeans.fit(scaled_data)
+        wcss.append(kmeans.inertia_)
 
-@app.route('/download')
-def download():
-    return send_file('static/segmented_customers.csv', as_attachment=True)
+    plt.figure()
+    plt.plot(range(1, 11), wcss, marker='o')
+    plt.title('Elbow Method')
+    plt.xlabel('Number of Clusters')
+    plt.ylabel('WCSS')
+    elbow_path = os.path.join(PLOT_FOLDER, 'elbow.png')
+    plt.savefig(elbow_path)
+
+    kmeans = KMeans(n_clusters=5, random_state=42)
+    df['Cluster'] = kmeans.fit_predict(scaled_data)
+
+    if 'Annual Income (k$)' in df.columns and 'Spending Score (1-100)' in df.columns:
+        plt.figure()
+        plt.scatter(df['Annual Income (k$)'], df['Spending Score (1-100)'], c=df['Cluster'], cmap='tab10')
+        plt.xlabel('Annual Income')
+        plt.ylabel('Spending Score')
+        plt.title('Customer Segments')
+        cluster_path = os.path.join(PLOT_FOLDER, 'clusters.png')
+        plt.savefig(cluster_path)
+    else:
+        cluster_path = None
+
+    clustered_filename = "clustered_" + file.filename
+    output_csv = os.path.join(UPLOAD_FOLDER, clustered_filename)
+    df.to_csv(output_csv, index=False)
+
+    preview_table = df.head().to_html(classes='table table-striped', index=False)
+
+    return render_template("result.html",
+                           elbow='static/elbow.png',
+                           cluster='static/clusters.png',
+                           table=preview_table,
+                           download_file=clustered_filename)
+
+@app.route('/download/<filename>')
+def download_file(filename):
+    filepath = os.path.join(UPLOAD_FOLDER, filename)
+    return send_file(filepath, as_attachment=True)
 
 if __name__ == '__main__':
     app.run(debug=True)
